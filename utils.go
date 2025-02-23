@@ -7,7 +7,7 @@ import (
 )
 
 // FormatWithDecimals форматирует число в строку с указанным количеством знаков после запятой
-func FormatWithDecimals(q Quantiter, value uint64, divisor Prefix, decimals uint) (string, error) {
+func FormatWithDecimals(q Quantiter, value uint64, divisor Prefix, decimals int) (string, error) {
 	sname := q.ShortName(divisor)
 	if sname == "" {
 		return "", errors.New("указанный префикс к данному типу применить нельзя")
@@ -24,10 +24,10 @@ func FormatWithDecimals(q Quantiter, value uint64, divisor Prefix, decimals uint
 	}
 
 	// Если нужно округление
-	if decimals < uint(len(decimalStr)) {
+	if decimals < len(decimalStr) {
 		// Получаем следующую цифру после места округления
 		nextDigit := 0
-		if decimals < uint(len(decimalStr)) {
+		if decimals < len(decimalStr) {
 			nextDigit = int(decimalStr[decimals] - '0')
 		}
 
