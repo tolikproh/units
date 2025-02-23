@@ -16,3 +16,25 @@ const (
 func (p Prefix) Uint() uint64 {
 	return uint64(p)
 }
+
+func (p Prefix) Name() (name string) {
+	switch p {
+	case Nano:
+		name = "Nano"
+	case Micro:
+		name = "Micro"
+	case Milli:
+		name = "Milli"
+	case Normal:
+		name = "Normal"
+	case Kilo:
+		name = "Kilo"
+	case Mega:
+		name = "Mega"
+	case Giga:
+		name = "Giga"
+	default:
+		name = "empty"
+	}
+	return
+}

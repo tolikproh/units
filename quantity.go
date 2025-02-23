@@ -1,5 +1,7 @@
 package units
 
+import "fmt"
+
 // Typed unit
 type UnitType int
 
@@ -18,12 +20,13 @@ type Quantiter interface {
 	String() string
 	ShortName(pref Prefix) string
 	FullName(pref Prefix) string
-	Add(qa Quantiter) Quantiter
-	Sub(qa Quantiter) Quantiter
-	Mul(qa Quantiter) Quantiter
-	Div(qa Quantiter) Quantiter
+	Add(qa Quantiter) *Quantity
+	Sub(qa Quantiter) *Quantity
+	Mul(qa Quantiter) *Quantity
+	Div(qa Quantiter) *Quantity
 	SetPrefix(pref Prefix)
 	SetDecimals(dec uint)
+	Types() UnitType
 }
 
 type Quantity struct {
@@ -35,16 +38,15 @@ type Quantity struct {
 	types    UnitType
 }
 
-func NewQuantity(val uint64, pref, div Prefix, types UnitType, unit func(p Prefix) (string, string)) Quantiter {
-	if pref == 0 {
-		pref = Normal
+func NewQuantity(val uint64, pref, div Prefix, types UnitType, unit func(p Prefix) (string, string)) *Quantity {
+	if pref == 0 || pref < div {
+		pref = div
 	}
-	val = val * pref.Uint() / div.Uint()
 	return &Quantity{value: val, prefix: pref, divisor: div, types: types, unit: unit}
 }
 
 func (q *Quantity) Value() uint64 {
-	return q.value
+	return q.value * q.prefix.Uint() / q.divisor.Uint()
 }
 
 func (q *Quantity) String() string {
@@ -62,10 +64,11 @@ func (q *Quantity) FullName(pref Prefix) string {
 	return fname
 }
 
-func (q *Quantity) Add(qa Quantiter) Quantiter {
-	if qa == nil {
+func (q *Quantity) Add(qa Quantiter) *Quantity {
+	if qa == nil || q.Types() != qa.Types() {
 		return nil
 	}
+
 	return &Quantity{
 		value:   q.Value() + qa.Value(),
 		prefix:  q.prefix,
@@ -75,13 +78,21 @@ func (q *Quantity) Add(qa Quantiter) Quantiter {
 	}
 }
 
-func (q *Quantity) Sub(qa Quantiter) Quantiter {
-	if qa == nil {
+func (q *Quantity) Sub(qa Quantiter) *Quantity {
+	if qa == nil || q.Types() != qa.Types() {
 		return nil
 	}
 	if q.Value() < qa.Value() {
 		return nil
 	}
+	fmt.Println("Value q : ", q.Value())
+	fmt.Println("Value qa: ", qa.Value())
+	val := q.Value() - qa.Value()
+	fmt.Println("Value: ", val)
+	fmt.Println("Prefix: ", q.prefix.Name())
+	fmt.Println("Divisor: ", q.divisor.Name())
+	fmt.Println("Types: ", q.types)
+
 	return &Quantity{
 		value:   q.Value() - qa.Value(),
 		prefix:  q.prefix,
@@ -91,10 +102,11 @@ func (q *Quantity) Sub(qa Quantiter) Quantiter {
 	}
 }
 
-func (q *Quantity) Mul(qa Quantiter) Quantiter {
+func (q *Quantity) Mul(qa Quantiter) *Quantity {
 	if qa == nil {
 		return nil
 	}
+
 	return &Quantity{
 		value:   q.Value() * qa.Value(),
 		prefix:  q.prefix,
@@ -104,7 +116,7 @@ func (q *Quantity) Mul(qa Quantiter) Quantiter {
 	}
 }
 
-func (q *Quantity) Div(qa Quantiter) Quantiter {
+func (q *Quantity) Div(qa Quantiter) *Quantity {
 	if qa == nil || qa.Value() == 0 {
 		return nil
 	}
@@ -129,4 +141,8 @@ func (q *Quantity) SetPrefix(pref Prefix) {
 
 func (q *Quantity) SetDecimals(dec uint) {
 	q.decimals = dec
+}
+
+func (q *Quantity) Types() UnitType {
+	return q.types
 }
