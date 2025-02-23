@@ -11,6 +11,7 @@ func main() {
 	add()
 	sub()
 	mul()
+	div()
 
 }
 
@@ -39,11 +40,12 @@ func sub() {
 	print(s1)
 
 	l3 := units.NewLength(400, units.Normal)
-	l4 := units.NewLength(1, units.Kilo)
+	l4 := units.NewLength(410, units.Normal)
 
-	s2 := l3.Sub(l4)
+	l3.Sub(l4)
 
-	print(s2)
+	print(l3)
+
 }
 
 func mul() {
@@ -53,6 +55,17 @@ func mul() {
 	p := units.NewPackage(2, units.Normal)
 
 	l.Mul(t).Mul(p)
+
+	print(l)
+}
+
+func div() {
+	fmt.Println("Div")
+	l := units.NewLength(300, units.Milli)
+	t := units.NewLength(4, units.Normal)
+
+	l.Div(t)
+	fmt.Println(l.Value())
 
 	print(l)
 }
@@ -73,4 +86,5 @@ func print(q units.Quantiter) {
 	fmt.Println(q.String())
 	q.SetPrefix(units.Giga)
 	fmt.Println(q.String())
+	fmt.Println("Value: ", q.Value())
 }
