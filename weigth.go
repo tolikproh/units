@@ -1,14 +1,33 @@
 package units
 
+import "errors"
+
 // Вес
+// Weigth представляет величину веса
 type Weigth struct {
 	Quantiter
 }
 
+// NewWeigth создает новую величину веса
 func NewWeigth(val uint64, pref Prefix) *Weigth {
 	return &Weigth{NewQuantity(val, pref, Nano, WeigthType, WeigthNames)}
 }
 
+// NewWeigthJSON создает величину веса из JSON
+func NewWeigthJSON(data []byte) (*Weigth, error) {
+	weigth := NewWeigth(0, 0)
+	if err := weigth.UnmarshalJSON(data); err != nil {
+		return nil, err
+	}
+
+	if weigth.Types() != WeigthType {
+		return nil, errors.New("new weigth json: unmarshal types is not weigth")
+	}
+
+	return weigth, nil
+}
+
+// WeigthNames возвращает названия единиц измерения веса для разных префиксов
 func WeigthNames(pref Prefix) (short string, full string) {
 	switch pref {
 	case Nano:

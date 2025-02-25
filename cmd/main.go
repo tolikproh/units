@@ -7,12 +7,55 @@ import (
 )
 
 func main() {
+	// Создание величин
+	length1 := units.NewLength(100, units.Normal) // 100 метров
+	length2 := units.NewLength(2, units.Kilo)     // 2 километра
 
-	add()
-	sub()
-	mul()
-	div()
+	// Сложение
+	totalLength := length1.Add(length2)
+	fmt.Printf("Сумма: %s\n", totalLength.String()) // Ожидается: 2100 м
 
+	// Вычитание
+	difference := length2.Sub(length1)
+	difference.SetDecimals(2)
+	fmt.Printf("Разность: %s\n", difference.String()) // Ожидается: 1.9 км
+	difference.SetDecimals(0)
+	fmt.Printf("Разность: %s\n", difference.String()) // Ожидается: 2 км
+	difference.SetPrefix(units.Normal)
+	fmt.Printf("Разность: %s\n", difference.String()) // Ожидается: 1900 м
+
+	// Умножение
+	things := units.NewThings(5, units.Normal) // 5 штук
+	multiplied := length1.Mul(things)
+	fmt.Printf("Умножение: %s\n", multiplied.String()) // Ожидается: 500 м
+
+	// Деление
+	length2.SetPrefix(units.Normal)
+	divided := length2.Div(units.NewLength(1, units.Normal)) // Делим на 1 метр
+	difference.SetDecimals(10)
+	difference.SetPrefix(units.Normal)
+	fmt.Printf("Деление: %s, результат: %v\n", divided.String(), divided.Ok()) // Ожидается: 2000 м
+
+	// Сериализация в JSON
+	jsonData, err := length1.MarshalJSON()
+	if err != nil {
+		fmt.Printf("Ошибка сериализации: %v\n", err)
+		return
+	}
+	fmt.Printf("Сериализованный JSON: %s\n", jsonData)
+
+	// Десериализация из JSON
+
+	newLength, err := units.NewLengthJSON(jsonData)
+	if err != nil {
+		fmt.Printf("Ошибка десериализации: %v\n", err)
+		return
+	}
+	fmt.Printf("Десериализованная длина: %s\n", newLength.String()) // Ожидается: 100 м
+
+	// Проверка значений
+	fmt.Printf("Значение длины: %d\n", newLength.Value()) // Ожидается: 100
+	fmt.Printf("Тип величины: %d\n", newLength.Types())   // Ожидается: 0 (LengthType)
 }
 
 func add() {
@@ -68,10 +111,23 @@ func div() {
 	fmt.Println(l.Value())
 
 	print(l)
+
+	t1 := units.NewLength(300, units.Milli)
+	b, _ := t1.MarshalJSON()
+	fmt.Printf("%s\n", b)
+
+	l1, err := units.NewLengthJSON(b)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+
+	print(l1)
+
 }
 
 func print(q units.Quantiter) {
-	q.SetDecimals(16)
+	q.SetDecimals(10)
 	q.SetPrefix(units.Nano)
 	fmt.Println(q.String())
 	q.SetPrefix(units.Micro)
