@@ -8,21 +8,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// UnitType определяет тип единицы измерения
-type UnitType int
-
-// Константы для различных типов единиц измерения
-const (
-	LengthType UnitType = iota
-	WeigthType
-	ThingsType
-	SetType
-	PackageType
-	BayType
-)
-
 // Quantiter определяет интерфейс для работы с величинами
 type Quantiter interface {
+	// Copy создает новый метод и делает его копию
+	Copy() *Quantity
 	// Value возвращает значение в базовых единицах
 	Value() uint64
 	// String возвращает отформатированную строку с единицей измерения
@@ -47,11 +36,6 @@ type Quantiter interface {
 	IsNegative() bool
 	// Ok возвращает статус последней операции
 	Ok() bool
-	// Арифметические операции
-	Add(qa Quantiter) Quantiter
-	Sub(qa Quantiter) Quantiter
-	Mul(qa Quantiter) Quantiter
-	Div(qa Quantiter) Quantiter
 }
 
 // Quantity базовая структура для всех величин
@@ -83,6 +67,20 @@ func NewQuantity(val uint64, pref, div Prefix, types UnitType, unit func(p Prefi
 	}
 	val = val * pref.Uint()
 	return &Quantity{value: val, prefix: pref, divisor: div, types: types, unit: unit}
+}
+
+// Value возвращает значение в базовых единицах с учетом делителя
+func (q *Quantity) Copy() *Quantity {
+	return &Quantity{
+		value:    q.value,
+		prefix:   q.prefix,
+		divisor:  q.divisor,
+		decimals: q.decimals,
+		unit:     q.unit,
+		types:    q.types,
+		negative: q.negative,
+		ok:       q.ok,
+	}
 }
 
 // Value возвращает значение в базовых единицах с учетом делителя
@@ -197,95 +195,6 @@ func (q *Quantity) Ok() bool {
 	return q.ok
 }
 
-// Add выполняет сложение с другой величиной того же типа
-func (q *Quantity) Add(qa Quantiter) Quantiter {
-	res := &Quantity{
-		prefix:   q.prefix,
-		divisor:  q.divisor,
-		decimals: q.decimals,
-		unit:     q.unit,
-		types:    q.types,
-		negative: q.negative,
-		ok:       q.ok,
-	}
-
-	if qa != nil && q.Types() == qa.Types() {
-		res.value = q.Value() + qa.Value()
-		res.ok = true
-	} else {
-		res.ok = false
-	}
-	return res
-}
-
-// Sub выполняет вычитание другой величины того же типа
-func (q *Quantity) Sub(qa Quantiter) Quantiter {
-	res := &Quantity{
-		prefix:   q.prefix,
-		divisor:  q.divisor,
-		decimals: q.decimals,
-		unit:     q.unit,
-		types:    q.types,
-		negative: q.negative,
-		ok:       q.ok,
-	}
-
-	if qa != nil && q.Types() == qa.Types() {
-		if qa.Value() > q.Value() {
-			res.value = qa.Value() - q.Value()
-			res.negative = true
-		} else {
-			res.value = q.Value() - qa.Value()
-		}
-		res.ok = true
-	} else {
-		res.ok = false
-	}
-	return res
-}
-
-// Mul выполняет умножение на другую величину
-func (q *Quantity) Mul(qa Quantiter) Quantiter {
-	res := &Quantity{
-		prefix:   q.prefix,
-		divisor:  q.divisor,
-		decimals: q.decimals,
-		unit:     q.unit,
-		types:    q.types,
-		negative: q.negative,
-		ok:       q.ok,
-	}
-
-	if qa != nil {
-		res.value = q.Value() * qa.Value()
-		res.ok = true
-	} else {
-		res.ok = false
-	}
-	return res
-}
-
-// Div выполняет деление на другую величину
-func (q *Quantity) Div(qa Quantiter) Quantiter {
-	res := &Quantity{
-		prefix:   q.prefix,
-		divisor:  q.divisor,
-		decimals: q.decimals,
-		unit:     q.unit,
-		types:    q.types,
-		negative: q.negative,
-		ok:       q.ok,
-	}
-
-	if qa != nil && qa.Value() > 0 {
-		res.value = q.Value() * qa.Prefix().Uint() / qa.Value()
-		res.ok = true
-	} else {
-		res.ok = false
-	}
-	return res
-}
-
 // MarshalJSON реализует интерфейс json.Marshaler
 func (q *Quantity) MarshalJSON() ([]byte, error) {
 	qj := quantityJSON{
@@ -321,4 +230,76 @@ func (q *Quantity) UnmarshalJSON(data []byte) error {
 	q.ok = true
 
 	return nil
+}
+
+// Арифметические операции
+// Add выполняет сложение с другой величиной того же типа
+func add(a, b Quantiter) Quantiter {
+	res := a.Copy()
+
+	if b != nil && a.Types() == b.Types() {
+		res.value = a.Value() + b.Value()
+		res.ok = true
+	} else {
+		res.value = 0
+		res.ok = false
+	}
+	return res
+}
+
+// Sub выполняет вычитание другой величины того же типа
+func sub(a, b Quantiter) Quantiter {
+	res := a.Copy()
+
+	if b != nil && a.Types() == b.Types() {
+		if b.Value() > a.Value() {
+			res.value = b.Value() - a.Value()
+			res.negative = true
+		} else {
+			res.value = a.Value() - b.Value()
+		}
+		res.ok = true
+	} else {
+		res.value = 0
+		res.ok = false
+	}
+	return res
+}
+
+// Mul выполняет умножение на другую величину
+func mul(a, b Quantiter) Quantiter {
+	res := a.Copy()
+
+	if b != nil {
+		res.value = a.Value() * b.Value()
+		res.ok = true
+	} else {
+		res.value = 0
+		res.ok = false
+	}
+	return res
+}
+
+// Div выполняет деление на другую величину
+func div(a, b Quantiter) Quantiter {
+	res := a.Copy()
+
+	if b != nil && b.Value() > 0 {
+		// Убедитесь, что делитель не равен нулю
+		if b.Value() == 0 {
+			res.ok = false
+			return res
+		}
+		if a.Value() >= b.Value() {
+			res.value = a.Value() / b.Value() * 1000000000
+
+		} else {
+			res.value = (a.Value() * 1000) / b.Value() * 1000000
+		}
+		res.ok = true
+	} else {
+		res.value = 0
+		res.ok = false
+	}
+	return res
 }

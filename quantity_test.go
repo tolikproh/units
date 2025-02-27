@@ -29,7 +29,7 @@ func TestAdd(t *testing.T) {
 		return "m", "метр"
 	})
 
-	result := q1.Add(q2)
+	result := add(q1, q2)
 	if result.Value() != 150 {
 		t.Errorf("Expected value 150, got %d", result.Value())
 	}
@@ -44,7 +44,7 @@ func TestSub(t *testing.T) {
 		return "m", "метр"
 	})
 
-	result := q1.Sub(q2)
+	result := sub(q1, q2)
 	if result.Value() != 70 {
 		t.Errorf("Expected value 70, got %d", result.Value())
 	}
@@ -59,7 +59,7 @@ func TestMul(t *testing.T) {
 		return "m", "метр"
 	})
 
-	result := q1.Mul(q2)
+	result := mul(q1, q2)
 	if result.Value() != 50 {
 		t.Errorf("Expected value 50, got %d", result.Value())
 	}
@@ -74,7 +74,7 @@ func TestDiv(t *testing.T) {
 		return "m", "метр"
 	})
 
-	result := q1.Div(q2)
+	result := div(q1, q2)
 	if result.Value() != 50 {
 		t.Errorf("Expected value 50, got %d", result.Value())
 	}

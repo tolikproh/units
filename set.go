@@ -36,3 +36,19 @@ func SetNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Set) Add(b Quantiter) *Set {
+	return &Set{add(q, b)}
+}
+
+func (q *Set) Sub(b Quantiter) *Set {
+	return &Set{sub(q, b)}
+}
+
+func (q *Set) Mul(b Quantiter) *Set {
+	return &Set{mul(q, b)}
+}
+
+func (q *Set) Div(b Quantiter) *Set {
+	return &Set{div(q, b)}
+}

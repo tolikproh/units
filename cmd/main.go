@@ -9,7 +9,7 @@ import (
 func main() {
 	// Создание величин
 	length1 := units.NewLength(100, units.Normal) // 100 метров
-	length2 := units.NewLength(2, units.Kilo)     // 2 километра
+	length2 := units.NewLength(20, units.Kilo)    // 2 километра
 
 	// Сложение
 	totalLength := length1.Add(length2)
@@ -30,11 +30,11 @@ func main() {
 	fmt.Printf("Умножение: %s\n", multiplied.String()) // Ожидается: 500 м
 
 	// Деление
-	length2.SetPrefix(units.Normal)
-	divided := length2.Div(units.NewLength(1, units.Normal)) // Делим на 1 метр
-	difference.SetDecimals(10)
-	difference.SetPrefix(units.Normal)
-	fmt.Printf("Деление: %s, результат: %v\n", divided.String(), divided.Ok()) // Ожидается: 2000 м
+	length3 := units.NewLength(100, units.Kilo)            // 100 километров
+	divided := length3.Div(units.NewLength(2, units.Kilo)) // Делим на 2  километра
+	divided.SetDecimals(10)
+	divided.SetPrefix(units.Normal)
+	fmt.Printf("Деление: %s, результат: %v\n", divided.String(), divided.Ok()) // Ожидается: 50 м
 
 	// Сериализация в JSON
 	jsonData, err := length1.MarshalJSON()
@@ -43,6 +43,14 @@ func main() {
 		return
 	}
 	fmt.Printf("Сериализованный JSON: %s\n", jsonData)
+
+	jsd, err := units.NewJSON(jsonData)
+	if err != nil {
+		fmt.Println("Error: %w", err)
+	} else {
+		fmt.Println("JSON")
+		print(jsd)
+	}
 
 	// Десериализация из JSON
 
@@ -56,6 +64,8 @@ func main() {
 	// Проверка значений
 	fmt.Printf("Значение длины: %d\n", newLength.Value()) // Ожидается: 100
 	fmt.Printf("Тип величины: %d\n", newLength.Types())   // Ожидается: 0 (LengthType)
+
+	print(length2)
 }
 
 func add() {
@@ -129,18 +139,18 @@ func div() {
 func print(q units.Quantiter) {
 	q.SetDecimals(10)
 	q.SetPrefix(units.Nano)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Micro)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Milli)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Normal)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Kilo)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Mega)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	q.SetPrefix(units.Giga)
-	fmt.Println(q.String())
+	fmt.Println(q)
 	fmt.Println("Value: ", q.Value())
 }

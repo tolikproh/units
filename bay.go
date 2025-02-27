@@ -36,3 +36,19 @@ func BayNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Bay) Add(b Quantiter) *Bay {
+	return &Bay{add(q, b)}
+}
+
+func (q *Bay) Sub(b Quantiter) *Bay {
+	return &Bay{sub(q, b)}
+}
+
+func (q *Bay) Mul(b Quantiter) *Bay {
+	return &Bay{mul(q, b)}
+}
+
+func (q *Bay) Div(b Quantiter) *Bay {
+	return &Bay{div(q, b)}
+}

@@ -36,3 +36,19 @@ func PackageNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Package) Add(b Quantiter) *Package {
+	return &Package{add(q, b)}
+}
+
+func (q *Package) Sub(b Quantiter) *Package {
+	return &Package{sub(q, b)}
+}
+
+func (q *Package) Mul(b Quantiter) *Package {
+	return &Package{mul(q, b)}
+}
+
+func (q *Package) Div(b Quantiter) *Package {
+	return &Package{div(q, b)}
+}

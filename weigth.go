@@ -54,3 +54,19 @@ func WeigthNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Weigth) Add(b Quantiter) *Weigth {
+	return &Weigth{add(q, b)}
+}
+
+func (q *Weigth) Sub(b Quantiter) *Weigth {
+	return &Weigth{sub(q, b)}
+}
+
+func (q *Weigth) Mul(b Quantiter) *Weigth {
+	return &Weigth{mul(q, b)}
+}
+
+func (q *Weigth) Div(b Quantiter) *Weigth {
+	return &Weigth{div(q, b)}
+}

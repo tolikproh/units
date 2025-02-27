@@ -77,3 +77,17 @@ func TestAllFunctional(t *testing.T) {
 		t.Errorf("Expected type LengthType after unmarshal, got %d", newLength.Types())
 	}
 }
+
+// TestDivByZero проверяет деление на ноль
+func TestDivByZero(t *testing.T) {
+	length1 := NewLength(100, Normal) // 100 метров
+	length2 := NewLength(0, Normal)   // 0 метров
+
+	result := length1.Div(length2)
+	if result.Ok() {
+		t.Errorf("Expected division by zero to fail, but it succeeded")
+	}
+	if result.Value() != 0 {
+		t.Errorf("Expected value 0 when dividing by zero, got %d", result.Value())
+	}
+}

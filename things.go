@@ -36,3 +36,19 @@ func ThingsNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Things) Add(b Quantiter) *Things {
+	return &Things{add(q, b)}
+}
+
+func (q *Things) Sub(b Quantiter) *Things {
+	return &Things{sub(q, b)}
+}
+
+func (q *Things) Mul(b Quantiter) *Things {
+	return &Things{mul(q, b)}
+}
+
+func (q *Things) Div(b Quantiter) *Things {
+	return &Things{div(q, b)}
+}

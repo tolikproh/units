@@ -50,3 +50,19 @@ func LengthNames(pref Prefix) (short string, full string) {
 	}
 	return
 }
+
+func (q *Length) Add(b Quantiter) *Length {
+	return &Length{add(q, b)}
+}
+
+func (q *Length) Sub(b Quantiter) *Length {
+	return &Length{sub(q, b)}
+}
+
+func (q *Length) Mul(b Quantiter) *Length {
+	return &Length{mul(q, b)}
+}
+
+func (q *Length) Div(b Quantiter) *Length {
+	return &Length{div(q, b)}
+}
