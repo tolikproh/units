@@ -47,6 +47,9 @@ func LengthNames(pref Prefix) (short string, full string) {
 	case Mega:
 		short = "тыс.км"
 		full = "тысяч киллометров"
+	case Giga:
+		short = "тыс.Мм"
+		full = "тысяч мегаметров"
 	}
 	return
 }

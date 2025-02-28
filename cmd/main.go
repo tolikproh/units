@@ -32,9 +32,11 @@ func main() {
 	// Деление
 	length3 := units.NewLength(100, units.Kilo)            // 100 километров
 	divided := length3.Div(units.NewLength(2, units.Kilo)) // Делим на 2  километра
-	divided.SetDecimals(10)
-	divided.SetPrefix(units.Normal)
-	fmt.Printf("Деление: %s, результат: %v\n", divided.String(), divided.Ok()) // Ожидается: 50 м
+	length3 = &units.Length{divided.Copy()}
+	length3.SetDecimals(16)
+	length3.SetPrefix(units.Mega)
+	fmt.Println(length3.Value())
+	fmt.Printf("Деление: %s %s, результат: %v\n", length3, length3.Suffix(), length3.Ok()) // Ожидается: 50 м
 
 	// Сериализация в JSON
 	jsonData, err := length1.MarshalJSON()

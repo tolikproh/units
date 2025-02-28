@@ -4,7 +4,6 @@ package units
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -142,10 +141,10 @@ func (q *Quantity) String() string {
 
 	q.ok = true
 
-	if decimalStr == "" {
-		return strings.TrimSpace(fmt.Sprintf("%s%d", sign, intPart))
-	}
-	return strings.TrimSpace(fmt.Sprintf("%s%d%s", sign, intPart, decimalStr))
+	// if decimalStr == "" {
+	// 	return fmt.Sprintf("%s%d", sign, intPart)
+	// }
+	return fmt.Sprintf("%s%d%s", sign, intPart, decimalStr)
 }
 
 // ShortName возвращает короткое имя единицы измерения для указанного префикса
