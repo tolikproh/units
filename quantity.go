@@ -4,6 +4,7 @@ package units
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -20,10 +21,10 @@ type Quantiter interface {
 	MarshalJSON() ([]byte, error)
 	// UnmarshalJSON десериализует величину из JSON
 	UnmarshalJSON(data []byte) error
-	// ShortName возвращает короткое имя единицы измерения
-	ShortName(pref Prefix) string
-	// FullName возвращает полное имя единицы измерения
-	FullName(pref Prefix) string
+	// Suffix возвращает короткое имя единицы измерения
+	Suffix() string
+	// SuffixFull возвращает полное имя единицы измерения
+	SuffixFull() string
 	// SetPrefix устанавливает новый префикс
 	SetPrefix(pref Prefix)
 	// Prefix возвращает текущий префикс
@@ -90,8 +91,8 @@ func (q *Quantity) Value() uint64 {
 
 // String возвращает отформатированную строку с учетом префикса и точности
 func (q *Quantity) String() string {
-	sname := q.ShortName(q.prefix)
-	if sname == "" {
+	q.ok = false
+	if q.Suffix() == "" {
 		return ""
 	}
 
@@ -139,21 +140,23 @@ func (q *Quantity) String() string {
 		sign = "-"
 	}
 
+	q.ok = true
+
 	if decimalStr == "" {
-		return fmt.Sprintf("%s%d %s", sign, intPart, sname)
+		return strings.TrimSpace(fmt.Sprintf("%s%d", sign, intPart))
 	}
-	return fmt.Sprintf("%s%d%s %s", sign, intPart, decimalStr, sname)
+	return strings.TrimSpace(fmt.Sprintf("%s%d%s", sign, intPart, decimalStr))
 }
 
 // ShortName возвращает короткое имя единицы измерения для указанного префикса
-func (q *Quantity) ShortName(pref Prefix) string {
-	name, _ := q.unit(pref)
+func (q *Quantity) Suffix() string {
+	name, _ := q.unit(q.Prefix())
 	return name
 }
 
 // FullName возвращает полное имя единицы измерения для указанного префикса
-func (q *Quantity) FullName(pref Prefix) string {
-	_, fname := q.unit(pref)
+func (q *Quantity) SuffixFull() string {
+	_, fname := q.unit(q.Prefix())
 	return fname
 }
 
@@ -175,8 +178,10 @@ func (q *Quantity) Prefix() Prefix {
 // SetDecimals устанавливает количество знаков после запятой
 func (q *Quantity) SetDecimals(dec int32) {
 	if dec < 0 {
-		dec = 0
+		q.ok = false
+		return
 	}
+	q.ok = true
 	q.decimals = dec
 }
 
