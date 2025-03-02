@@ -14,7 +14,9 @@ type Quantiter interface {
 	Copy() *Quantity
 	// Value возвращает значение в базовых единицах
 	Value() uint64
-	// String возвращает отформатированную строку с единицей измерения
+	// SuffixString возвращает отформатированную строку с единицей измерения
+	SuffixString() string
+	// String возвращает отформатированную строку
 	String() string
 	// MarshalJSON сериализует величину в JSON
 	MarshalJSON() ([]byte, error)
@@ -86,6 +88,11 @@ func (q *Quantity) Copy() *Quantity {
 // Value возвращает значение в базовых единицах с учетом делителя
 func (q *Quantity) Value() uint64 {
 	return q.value / q.divisor.Uint()
+}
+
+// SuffixString возвращает отформатированную строку с учетом префикса и точности с дополнением единицы измерения
+func (q *Quantity) SuffixString() string {
+	return q.String() + " " + q.Suffix()
 }
 
 // String возвращает отформатированную строку с учетом префикса и точности

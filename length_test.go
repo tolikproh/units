@@ -10,24 +10,16 @@ func TestLengthValue(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    uint64
-		valueExp uint64
-		strExp   string
 		prefix   Prefix
+		valueExp uint64
 	}{
-		{
-			name:     "100 метров",
-			input:    100,
-			valueExp: 100000000000,
-			strExp:   "100 м",
-			prefix:   Normal,
-		},
-		{
-			name:     "200 метров",
-			input:    200,
-			valueExp: 200000000000,
-			strExp:   "200 м",
-			prefix:   Normal,
-		},
+		{"121234567890 нанометров", 121234567890, Nano, 121234567890},
+		{"121234567 микрометров", 121234567, Micro, 121234567000},
+		{"121234 миллиметров", 121234, Milli, 121234000000},
+		{"121 метров", 121, Normal, 121000000000},
+		{"121 километров", 121, Kilo, 121000000000000},
+		{"12 тыс километров", 12, Mega, 12000000000000000},
+		{"2 тыс мегаметров", 2, Giga, 2000000000000000000},
 	}
 
 	for _, tc := range testCases {
@@ -44,28 +36,61 @@ func TestLengthValue(t *testing.T) {
 
 // TestLengthString проверяет метод String для длины
 func TestLengthString(t *testing.T) {
+	type expect struct {
+		expected string
+		prefix   Prefix
+		decimal  int32
+	}
+
 	testCases := []struct {
-		name       string
-		input      uint64
-		prefix     Prefix
-		expected   string
-		expPrefix  Prefix
-		expDecimal int32
+		name     string
+		input    uint64
+		prefix   Prefix
+		expected []expect
 	}{
-		{"100 метров", 100, Normal, "100 м", Normal, 0},
-		{"200 метров", 200, Normal, "200 м", Normal, 0},
-		{"1 километр", 1, Kilo, "1 км", Kilo, 0},
-		{"1500 метров", 1500, Normal, "1.5 км", Kilo, 2},
-		{"0 метров", 0, Normal, "0 м", Normal, 0},
+		{"600 метров", 600, Normal, []expect{
+			{"600000000000 нм", Nano, 0},
+			{"600000000 μм", Micro, 0},
+			{"600000 мм", Milli, 0},
+			{"600 м", Normal, 0},
+			{"0.6 км", Kilo, 1},
+			{"1 км", Kilo, 0},
+			{"0.0006 тыс.км", Mega, 4},
+			{"0.001 тыс.км", Mega, 3},
+			{"0.0000006 тыс.Мм", Giga, 7},
+			{"0.000001 тыс.Мм", Giga, 6},
+		}},
+		{"165 нанометров", 165, Nano, []expect{
+			{"165 нм", Nano, 16},
+			{"0.000000165 м", Normal, 9},
+			{"0.00000017 м", Normal, 8},
+			{"0.0000002 м", Normal, 7},
+			{"0.165 μм", Micro, 3},
+			{"0.17 μм", Micro, 2},
+			{"0.2 μм", Micro, 1},
+			{"0 μм", Micro, 0},
+			// {"100000 мм", Milli, 16},
+			// {"100 м", Normal, 16},
+			// {"0.1 км", Kilo, 16},
+			// {"0.0001 тыс.км", Mega, 16},
+			// {"0.0000001 тыс.Мм", Giga, 16},
+		}},
+		// {"200 метров", 200, Normal, "200 м", Normal, 0},
+		// {"1 километр", 1, Kilo, "1 км", Kilo, 0},
+		// {"1500 метров", 1500, Normal, "1.5 км", Kilo, 2},
+		// {"0 метров", 0, Normal, "0 м", Normal, 0},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			l := NewLength(tc.input, tc.prefix)
-			l.SetPrefix(tc.expPrefix)
-			l.SetDecimals(tc.expDecimal)
-			actual := l.String() + " " + l.Suffix()
-			require.Equal(t, tc.expected, actual, "Ожидалось: %s, получено: %s", tc.expected, actual)
+
+			for _, exp := range tc.expected {
+				l.SetPrefix(exp.prefix)
+				l.SetDecimals(exp.decimal)
+				actual := l.SuffixString()
+				require.Equal(t, exp.expected, actual, "Ожидалось: %s, получено: %s", tc.expected, actual)
+			}
 		})
 	}
 }
