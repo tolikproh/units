@@ -16,10 +16,10 @@ type Product struct {
 
 func New(name string) *Product {
 	u := units.New("м", "метр")
-	u.AddFromInt("км", "километр", 1000)
-	u.AddFromInt("бух-50", "бухта 50 м", 50)
-	u.AddFromInt("бух-100", "бухта 100 м", 100)
-	u.AddFromInt("бух-200", "бухта 200 м", 200)
+	u.AddUnit("км", "километр", 1000)
+	u.AddUnit("бух-50", "бухта 50 м", 50)
+	u.AddUnit("бух-100", "бухта 100 м", 100)
+	u.AddUnit("бух-200", "бухта 200 м", 200)
 
 	return &Product{
 		name: name,
@@ -33,13 +33,13 @@ func (p *Product) ListUnit() []*units.UnitItem {
 }
 
 func (p *Product) String() string {
-	value, _ := p.unit.GetInBaseUnit(p.val)
+	value, _ := p.unit.StringBase(p.val)
 	return strings.TrimSpace(value)
 }
 
 func (p *Product) StringFromUnit(unitName string) string {
 
-	value, _ := p.unit.GetInUnit(unitName, p.val)
+	value, _ := p.unit.StringUnit(unitName, p.val)
 
 	return strings.TrimSpace(value)
 }
@@ -80,6 +80,7 @@ func main() {
 	fmt.Println("Кол-во: ", prod1)
 	prod1.Sub("км", 0.10125)
 	fmt.Println("Кол-во: ", prod1)
+	prod1.Sub("км", 10)
 	for _, v := range prod1.ListUnit() {
 		fmt.Println("Кол-во: ", prod1.StringFromUnit(v.Name), " ", v.FullName)
 	}
