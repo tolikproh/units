@@ -16,7 +16,8 @@ type unitData struct {
 // Unit представляет набор единиц измерения для сохранения в БД
 // Это то, что должно храниться вместе с товаром в базе данных
 type Unit struct {
-	data *unitData
+	data      *unitData
+	precision int32 // Точность вывода (количество знаков после запятой), по умолчанию 3
 }
 
 // New создает новый набор единиц с базовой единицей
@@ -26,6 +27,7 @@ func New(baseUnitName, baseUnitFullName string) *Unit {
 			BaseUnit:        NewUnitItemFromInt(baseUnitName, baseUnitFullName, 1),
 			AdditionalUnits: make(map[string]*UnitItem),
 		},
+		precision: 3, // По умолчанию 3 знака после запятой
 	}
 }
 
@@ -40,7 +42,25 @@ func NewJSON(data []byte) (*Unit, error) {
 		parsed.AdditionalUnits = make(map[string]*UnitItem)
 	}
 
-	return &Unit{data: &parsed}, nil
+	return &Unit{
+		data:      &parsed,
+		precision: 3, // По умолчанию 3 знака после запятой
+	}, nil
+}
+
+// SetPrecision устанавливает точность вывода чисел (количество знаков после запятой)
+func (us *Unit) SetPrecision(precision int32) {
+	if us != nil {
+		us.precision = precision
+	}
+}
+
+// GetPrecision возвращает текущую точность вывода чисел
+func (us *Unit) GetPrecision() int32 {
+	if us == nil {
+		return 3
+	}
+	return us.precision
 }
 
 // AddUnit добавляет дополнительную единицу измерения
@@ -60,6 +80,10 @@ func (us *Unit) ToJSON() ([]byte, error) {
 	return json.Marshal(us.data)
 }
 
+// ToBase конвертирует значение из указанной единицы измерения в базовые единицы.
+// unitName - название единицы измерения
+// val - значение для конвертации
+// Возвращает значение в базовых единицах.
 func (us *Unit) ToBase(unitName string, val any) (decimal.Decimal, error) {
 
 	unit, dec, err := us.resolveUnitValue(unitName, val)
@@ -77,6 +101,18 @@ func (us *Unit) ToBase(unitName string, val any) (decimal.Decimal, error) {
 	return valueInBase, nil
 }
 
+// formatDecimal форматирует decimal с учетом точности.
+// Если число целое, не выводит дробную часть.
+// Убирает незначащие нули справа.
+func formatDecimal(dec decimal.Decimal, precision int32) string {
+	// Проверяем, является ли число целым
+	if dec.Equal(dec.Truncate(0)) {
+		return dec.Truncate(0).String()
+	}
+	// Округляем до нужной точности и используем String() для удаления незначащих нулей
+	return dec.Round(precision).String()
+}
+
 // StringBase возвращает количество в базовых единицах в виде строки
 func (us *Unit) StringBase(quantity any) (string, error) {
 	if us == nil || us.data == nil || us.data.BaseUnit == nil {
@@ -88,7 +124,7 @@ func (us *Unit) StringBase(quantity any) (string, error) {
 		return "", err
 	}
 
-	return dec.String(), nil
+	return formatDecimal(dec, us.precision), nil
 }
 
 // StringUnit возвращает количество в указанной единице измерения
@@ -117,7 +153,7 @@ func (us *Unit) StringUnit(unitName string, quantity any) (string, error) {
 
 	// Конвертируем из базовых единиц в указанную единицу
 	converted := unit.ConvertFromBase(dec)
-	return converted.String(), nil
+	return formatDecimal(converted, us.precision), nil
 }
 
 // List возвращает список доступных единиц измерения (сначала базовая, затем дополнительные, по алфавиту)
@@ -140,7 +176,9 @@ func (us *Unit) List() []*UnitItem {
 	return result
 }
 
-// ToDecimalValue конвертирует любое значение в decimal.Decimal
+// ToDecimalValue конвертирует любое значение в decimal.Decimal.
+// Поддерживает типы: int, int64, uint, uint64, float32, float64, string, decimal.Decimal.
+// Возвращает ошибку, если тип не поддерживается или строка не может быть распарсена.
 func ToDecimalValue(val any) (decimal.Decimal, error) {
 	switch v := val.(type) {
 	case decimal.Decimal:
@@ -188,7 +226,9 @@ func ToDecimalValue(val any) (decimal.Decimal, error) {
 	}
 }
 
-// Add добавляет дополнительную единицу измерения
+// addItem добавляет дополнительную единицу измерения в набор
+// unit - единица измерения для добавления
+// Возвращает ошибку, если единица уже существует или конфликтует с базовой единицей.
 func (us *Unit) addItem(unit *UnitItem) error {
 	if unit == nil {
 		return fmt.Errorf("cannot add nil unit")
@@ -206,6 +246,10 @@ func (us *Unit) addItem(unit *UnitItem) error {
 	return nil
 }
 
+// resolveUnitValue находит единицу измерения по имени и конвертирует значение в decimal.
+// unitName - название единицы измерения
+// val - значение для конвертации
+// Возвращает найденную единицу, сконвертированное значение и ошибку при необходимости.
 func (us *Unit) resolveUnitValue(unitName string, val any) (*UnitItem, decimal.Decimal, error) {
 	if unitName == "" {
 		return nil, decimal.Zero, fmt.Errorf("unit name cannot be empty")
