@@ -76,7 +76,7 @@ func TestNewJSON(t *testing.T) {
 				assert.NoError(t, err)
 				require.NotNil(t, u)
 				assert.NotNil(t, u.Additional)
-				assert.Equal(t, tt.wantPrec, u.Precision)
+				assert.Equal(t, tt.wantPrec, *u.Precision)
 			}
 		})
 	}
@@ -132,12 +132,8 @@ func TestToJSONWithPrecision(t *testing.T) {
 			require.NotNil(t, u2)
 
 			// Проверяем что Precision сохранился
-			if tt.wantPrec == 0 {
-				// Если был 0, должен стать 3 (default)
-				assert.Equal(t, int32(3), u2.Precision)
-			} else {
-				assert.Equal(t, tt.wantPrec, u2.Precision)
-			}
+			require.NotNil(t, u2.Precision)
+			assert.Equal(t, tt.wantPrec, *u2.Precision)
 		})
 	}
 }

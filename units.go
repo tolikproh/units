@@ -11,15 +11,16 @@ import (
 type Unit struct {
 	Base       *UnitItem            `json:"base"`
 	Additional map[string]*UnitItem `json:"additional"`
-	Precision  int32                `json:"precision"` // Точность вывода (количество знаков после запятой), по умолчанию 3
+	Precision  *int32               `json:"precision"` // Точность вывода (количество знаков после запятой), по умолчанию 3
 }
 
 // New создает новый набор единиц с базовой единицей
 func New(baseUnitName, baseUnitFullName string) *Unit {
+	p := int32(3)
 	return &Unit{
 		Base:       NewUnitItemFromInt(baseUnitName, baseUnitFullName, 1),
 		Additional: make(map[string]*UnitItem),
-		Precision:  3, // По умолчанию 3 знака после запятой
+		Precision:  &p,
 	}
 }
 
@@ -34,8 +35,9 @@ func NewJSON(data []byte) (*Unit, error) {
 		parsed.Additional = make(map[string]*UnitItem)
 	}
 	// Устанавливаем precision по умолчанию если не задан
-	if parsed.Precision == 0 {
-		parsed.Precision = 3
+	if parsed.Precision == nil {
+		p := int32(3)
+		parsed.Precision = &p
 	}
 
 	return &parsed, nil
@@ -44,16 +46,16 @@ func NewJSON(data []byte) (*Unit, error) {
 // SetPrecision устанавливает точность вывода чисел (количество знаков после запятой)
 func (u *Unit) SetPrecision(precision int32) {
 	if u != nil {
-		u.Precision = precision
+		u.Precision = &precision
 	}
 }
 
 // GetPrecision возвращает текущую точность вывода чисел
 func (u *Unit) GetPrecision() int32 {
-	if u == nil {
+	if u == nil || u.Precision == nil {
 		return 3
 	}
-	return u.Precision
+	return *u.Precision
 }
 
 // AddUnit добавляет дополнительную единицу измерения
@@ -117,7 +119,7 @@ func (u *Unit) StringBase(quantity any) (string, error) {
 		return "", err
 	}
 
-	return formatDecimal(dec, u.Precision), nil
+	return formatDecimal(dec, u.GetPrecision()), nil
 }
 
 // StringUnit возвращает количество в указанной единице измерения
@@ -146,7 +148,7 @@ func (u *Unit) StringUnit(unitName string, quantity any) (string, error) {
 
 	// Конвертируем из базовых единиц в указанную единицу
 	converted := unit.ConvertFromBase(dec)
-	return formatDecimal(converted, u.Precision), nil
+	return formatDecimal(converted, u.GetPrecision()), nil
 }
 
 // List возвращает список доступных единиц измерения (сначала базовая, затем дополнительные, по алфавиту)
