@@ -12,43 +12,57 @@ import (
 func TestNew(t *testing.T) {
 	u := New("м", "метр")
 	require.NotNil(t, u)
-	require.NotNil(t, u.data)
-	require.NotNil(t, u.data.BaseUnit)
-	assert.Equal(t, "м", u.data.BaseUnit.Name)
-	assert.Equal(t, "метр", u.data.BaseUnit.FullName)
-	assert.True(t, u.data.BaseUnit.ToBase.Equal(decimal.NewFromInt(1)))
-	assert.NotNil(t, u.data.AdditionalUnits)
-	assert.Empty(t, u.data.AdditionalUnits)
+	require.NotNil(t, u.Base)
+	assert.Equal(t, "м", u.Base.Name)
+	assert.Equal(t, "метр", u.Base.FullName)
+	assert.True(t, u.Base.ToBase.Equal(decimal.NewFromInt(1)))
+	assert.NotNil(t, u.Additional)
+	assert.Empty(t, u.Additional)
 }
 
 // TestNewJSON проверяет создание набора единиц из JSON
 func TestNewJSON(t *testing.T) {
 	tests := []struct {
-		name    string
-		json    string
-		wantErr bool
+		name     string
+		json     string
+		wantErr  bool
+		wantPrec int32
 	}{
 		{
-			name: "valid json",
+			name: "valid json with precision",
 			json: `{
-				"base_unit": {"Name": "м", "FullName": "метр", "ToBase": "1"},
-				"additional_units": {
+				"base": {"Name": "м", "FullName": "метр", "ToBase": "1"},
+				"additional": {
 					"км": {"Name": "км", "FullName": "километр", "ToBase": "1000"}
-				}
+				},
+				"precision": 5
 			}`,
-			wantErr: false,
+			wantErr:  false,
+			wantPrec: 5,
 		},
 		{
-			name:    "invalid json",
-			json:    `{invalid}`,
-			wantErr: true,
+			name: "valid json without precision (default)",
+			json: `{
+				"base": {"Name": "м", "FullName": "метр", "ToBase": "1"},
+				"additional": {}
+			}`,
+			wantErr:  false,
+			wantPrec: 3,
+		},
+		{
+			name:     "invalid json",
+			json:     `{invalid}`,
+			wantErr:  true,
+			wantPrec: 0,
 		},
 		{
 			name: "nil additional units",
 			json: `{
-				"base_unit": {"Name": "шт", "FullName": "штука", "ToBase": "1"}
+				"base": {"Name": "шт", "FullName": "штука", "ToBase": "1"},
+				"precision": 2
 			}`,
-			wantErr: false,
+			wantErr:  false,
+			wantPrec: 2,
 		},
 	}
 
@@ -61,7 +75,68 @@ func TestNewJSON(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, u)
-				assert.NotNil(t, u.data.AdditionalUnits)
+				assert.NotNil(t, u.Additional)
+				assert.Equal(t, tt.wantPrec, u.Precision)
+			}
+		})
+	}
+}
+
+// TestToJSON проверяет сохранение Unit в JSON с сохранением Precision
+func TestToJSONWithPrecision(t *testing.T) {
+	tests := []struct {
+		name      string
+		setupUnit func() *Unit
+		wantPrec  int32
+	}{
+		{
+			name: "default precision",
+			setupUnit: func() *Unit {
+				return New("м", "метр")
+			},
+			wantPrec: 3,
+		},
+		{
+			name: "custom precision",
+			setupUnit: func() *Unit {
+				u := New("м", "метр")
+				u.SetPrecision(5)
+				u.AddUnit("км", "километр", 1000)
+				return u
+			},
+			wantPrec: 5,
+		},
+		{
+			name: "zero precision",
+			setupUnit: func() *Unit {
+				u := New("м", "метр")
+				u.SetPrecision(0)
+				return u
+			},
+			wantPrec: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := tt.setupUnit()
+
+			// Сериализуем в JSON
+			data, err := u.ToJSON()
+			assert.NoError(t, err)
+			assert.NotNil(t, data)
+
+			// Десериализуем обратно
+			u2, err := NewJSON(data)
+			assert.NoError(t, err)
+			require.NotNil(t, u2)
+
+			// Проверяем что Precision сохранился
+			if tt.wantPrec == 0 {
+				// Если был 0, должен стать 3 (default)
+				assert.Equal(t, int32(3), u2.Precision)
+			} else {
+				assert.Equal(t, tt.wantPrec, u2.Precision)
 			}
 		})
 	}
@@ -114,7 +189,7 @@ func TestAddUnit(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Contains(t, u.data.AdditionalUnits, tt.unitName)
+				assert.Contains(t, u.Additional, tt.unitName)
 			}
 		})
 	}
@@ -433,7 +508,7 @@ func TestList(t *testing.T) {
 	})
 
 	t.Run("nil base unit", func(t *testing.T) {
-		u := &Unit{data: &unitData{}}
+		u := &Unit{}
 		list := u.List()
 		assert.Nil(t, list)
 	})

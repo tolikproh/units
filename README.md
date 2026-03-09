@@ -63,7 +63,9 @@ func main() {
 
 ```go
 type Unit struct {
-    // приватные поля
+    Base       *UnitItem            // Базовая единица измерения
+    Additional map[string]*UnitItem // Дополнительные единицы
+    Precision  int32                // Точность отображения (количество знаков после запятой)
 }
 ```
 
@@ -97,11 +99,19 @@ distance := units.New("м", "метр")
 
 ```go
 jsonData := []byte(`{
-    "name": "м",
-    "fullName": "метр",
-    "additionalUnits": [
-        {"name": "км", "fullName": "километр", "toBase": 1000}
-    ]
+    "base": {
+        "Name": "м",
+        "FullName": "метр",
+        "ToBase": "1"
+    },
+    "additional": {
+        "км": {
+            "Name": "км",
+            "FullName": "километр",
+            "ToBase": "1000"
+        }
+    },
+    "precision": 3
 }`)
 unit, err := units.NewJSON(jsonData)
 ```
@@ -216,10 +226,31 @@ for _, u := range units {
 
 #### `ToJSON() ([]byte, error)`
 
-Сериализует единицу измерения в JSON.
+Сериализует единицу измерения в JSON. Сохраняет все данные включая точность.
 
 ```go
 jsonData, err := distance.ToJSON()
+// {"base":{"Name":"м","FullName":"метр","ToBase":"1"},"additional":{"км":{"Name":"км","FullName":"километр","ToBase":"1000"}},"precision":3}
+```
+
+### JSON сериализация и точность
+
+При сохранении Unit в JSON сохраняется текущая точность. При восстановлении из JSON:
+- Если `precision` присутствует в JSON, используется сохранённое значение
+- Если `precision` отсутствует или равен 0, используется дефолт (3 знака)
+
+```go
+// Создаём и устанавливаем кастомную точность
+distance := units.New("м", "метр")
+distance.SetPrecision(5)
+distance.AddUnit("км", "километр", 1000)
+
+// Сохраняем в JSON (precision=5 будет сохранён)
+jsonData, _ := distance.ToJSON()
+
+// Восстанавливаем из JSON (precision автоматически восстановится)
+restored, _ := units.NewJSON(jsonData)
+fmt.Println(restored.GetPrecision()) // 5
 ```
 
 ## Примеры использования

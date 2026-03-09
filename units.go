@@ -8,85 +8,78 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type unitData struct {
-	BaseUnit        *UnitItem            `json:"base_unit"`
-	AdditionalUnits map[string]*UnitItem `json:"additional_units"`
-}
-
-// Unit представляет набор единиц измерения для сохранения в БД
-// Это то, что должно храниться вместе с товаром в базе данных
 type Unit struct {
-	data      *unitData
-	precision int32 // Точность вывода (количество знаков после запятой), по умолчанию 3
+	Base       *UnitItem            `json:"base"`
+	Additional map[string]*UnitItem `json:"additional"`
+	Precision  int32                `json:"precision"` // Точность вывода (количество знаков после запятой), по умолчанию 3
 }
 
 // New создает новый набор единиц с базовой единицей
 func New(baseUnitName, baseUnitFullName string) *Unit {
 	return &Unit{
-		data: &unitData{
-			BaseUnit:        NewUnitItemFromInt(baseUnitName, baseUnitFullName, 1),
-			AdditionalUnits: make(map[string]*UnitItem),
-		},
-		precision: 3, // По умолчанию 3 знака после запятой
+		Base:       NewUnitItemFromInt(baseUnitName, baseUnitFullName, 1),
+		Additional: make(map[string]*UnitItem),
+		Precision:  3, // По умолчанию 3 знака после запятой
 	}
 }
 
 // NewJSON создает новый набор единиц с базовой единицей из JSON
 func NewJSON(data []byte) (*Unit, error) {
-	var parsed unitData
+	var parsed Unit
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		return nil, err
 	}
 	// Инициализируем карту если она nil
-	if parsed.AdditionalUnits == nil {
-		parsed.AdditionalUnits = make(map[string]*UnitItem)
+	if parsed.Additional == nil {
+		parsed.Additional = make(map[string]*UnitItem)
+	}
+	// Устанавливаем precision по умолчанию если не задан
+	if parsed.Precision == 0 {
+		parsed.Precision = 3
 	}
 
-	return &Unit{
-		data:      &parsed,
-		precision: 3, // По умолчанию 3 знака после запятой
-	}, nil
+	return &parsed, nil
 }
 
 // SetPrecision устанавливает точность вывода чисел (количество знаков после запятой)
-func (us *Unit) SetPrecision(precision int32) {
-	if us != nil {
-		us.precision = precision
+func (u *Unit) SetPrecision(precision int32) {
+	if u != nil {
+		u.Precision = precision
 	}
 }
 
 // GetPrecision возвращает текущую точность вывода чисел
-func (us *Unit) GetPrecision() int32 {
-	if us == nil {
+func (u *Unit) GetPrecision() int32 {
+	if u == nil {
 		return 3
 	}
-	return us.precision
+	return u.Precision
 }
 
 // AddUnit добавляет дополнительную единицу измерения
-func (us *Unit) AddUnit(name, fullName string, toBase any) error {
+func (u *Unit) AddUnit(name, fullName string, toBase any) error {
 	dec, err := ToDecimalValue(toBase)
 	if err != nil {
 		return fmt.Errorf("invalid toBase value: %w", err)
 	}
-	return us.addItem(NewUnitItem(name, fullName, dec))
+	return u.addItem(NewUnitItem(name, fullName, dec))
 }
 
 // ToJSON сериализует Unit в JSON-строку
-func (us *Unit) ToJSON() ([]byte, error) {
-	if us == nil || us.data == nil {
+func (u *Unit) ToJSON() ([]byte, error) {
+	if u == nil {
 		return []byte("null"), nil
 	}
-	return json.Marshal(us.data)
+	return json.Marshal(u)
 }
 
 // ToBase конвертирует значение из указанной единицы измерения в базовые единицы.
 // unitName - название единицы измерения
 // val - значение для конвертации
 // Возвращает значение в базовых единицах.
-func (us *Unit) ToBase(unitName string, val any) (decimal.Decimal, error) {
+func (u *Unit) ToBase(unitName string, val any) (decimal.Decimal, error) {
 
-	unit, dec, err := us.resolveUnitValue(unitName, val)
+	unit, dec, err := u.resolveUnitValue(unitName, val)
 	if err != nil {
 		return decimal.Zero, err
 	}
@@ -114,8 +107,8 @@ func formatDecimal(dec decimal.Decimal, precision int32) string {
 }
 
 // StringBase возвращает количество в базовых единицах в виде строки
-func (us *Unit) StringBase(quantity any) (string, error) {
-	if us == nil || us.data == nil || us.data.BaseUnit == nil {
+func (u *Unit) StringBase(quantity any) (string, error) {
+	if u == nil || u.Base == nil {
 		return "", fmt.Errorf("unit set is not initialized")
 	}
 
@@ -124,14 +117,14 @@ func (us *Unit) StringBase(quantity any) (string, error) {
 		return "", err
 	}
 
-	return formatDecimal(dec, us.precision), nil
+	return formatDecimal(dec, u.Precision), nil
 }
 
 // StringUnit возвращает количество в указанной единице измерения
 // unitName - название единицы, в которой нужно получить значение
 // quantity - количество в базовых единицах
-func (us *Unit) StringUnit(unitName string, quantity any) (string, error) {
-	if us == nil || us.data == nil || us.data.BaseUnit == nil {
+func (u *Unit) StringUnit(unitName string, quantity any) (string, error) {
+	if u == nil || u.Base == nil {
 		return "", fmt.Errorf("unit set is not initialized")
 	}
 
@@ -141,10 +134,10 @@ func (us *Unit) StringUnit(unitName string, quantity any) (string, error) {
 	}
 
 	var unit *UnitItem
-	if unitName == us.data.BaseUnit.Name {
-		unit = us.data.BaseUnit
+	if unitName == u.Base.Name {
+		unit = u.Base
 	} else {
-		found, exists := us.data.AdditionalUnits[unitName]
+		found, exists := u.Additional[unitName]
 		if !exists {
 			return "", fmt.Errorf("unit not found: %s", unitName)
 		}
@@ -153,25 +146,25 @@ func (us *Unit) StringUnit(unitName string, quantity any) (string, error) {
 
 	// Конвертируем из базовых единиц в указанную единицу
 	converted := unit.ConvertFromBase(dec)
-	return formatDecimal(converted, us.precision), nil
+	return formatDecimal(converted, u.Precision), nil
 }
 
 // List возвращает список доступных единиц измерения (сначала базовая, затем дополнительные, по алфавиту)
-func (us *Unit) List() []*UnitItem {
-	if us == nil || us.data == nil || us.data.BaseUnit == nil {
+func (u *Unit) List() []*UnitItem {
+	if u == nil || u.Base == nil {
 		return nil
 	}
-	names := make([]string, 0, len(us.data.AdditionalUnits))
-	for name := range us.data.AdditionalUnits {
+	names := make([]string, 0, len(u.Additional))
+	for name := range u.Additional {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	result := make([]*UnitItem, 0, 1+len(names))
 	// Базовая единица первой
-	result = append(result, us.data.BaseUnit)
+	result = append(result, u.Base)
 	// Дополнительные в алфавитном порядке по краткому имени
 	for _, n := range names {
-		result = append(result, us.data.AdditionalUnits[n])
+		result = append(result, u.Additional[n])
 	}
 	return result
 }
@@ -229,20 +222,20 @@ func ToDecimalValue(val any) (decimal.Decimal, error) {
 // addItem добавляет дополнительную единицу измерения в набор
 // unit - единица измерения для добавления
 // Возвращает ошибку, если единица уже существует или конфликтует с базовой единицей.
-func (us *Unit) addItem(unit *UnitItem) error {
+func (u *Unit) addItem(unit *UnitItem) error {
 	if unit == nil {
 		return fmt.Errorf("cannot add nil unit")
 	}
-	if us == nil || us.data == nil || us.data.BaseUnit == nil {
+	if u == nil || u.Base == nil {
 		return fmt.Errorf("unit set is not initialized")
 	}
-	if unit.Name == us.data.BaseUnit.Name {
+	if unit.Name == u.Base.Name {
 		return fmt.Errorf("unit name conflicts with base unit: %s", unit.Name)
 	}
-	if _, exists := us.data.AdditionalUnits[unit.Name]; exists {
+	if _, exists := u.Additional[unit.Name]; exists {
 		return fmt.Errorf("unit already exists: %s", unit.Name)
 	}
-	us.data.AdditionalUnits[unit.Name] = unit
+	u.Additional[unit.Name] = unit
 	return nil
 }
 
@@ -250,18 +243,18 @@ func (us *Unit) addItem(unit *UnitItem) error {
 // unitName - название единицы измерения
 // val - значение для конвертации
 // Возвращает найденную единицу, сконвертированное значение и ошибку при необходимости.
-func (us *Unit) resolveUnitValue(unitName string, val any) (*UnitItem, decimal.Decimal, error) {
+func (u *Unit) resolveUnitValue(unitName string, val any) (*UnitItem, decimal.Decimal, error) {
 	if unitName == "" {
 		return nil, decimal.Zero, fmt.Errorf("unit name cannot be empty")
 	}
-	if us == nil || us.data == nil || us.data.BaseUnit == nil {
+	if u == nil || u.Base == nil {
 		return nil, decimal.Zero, fmt.Errorf("unit set is not initialized")
 	}
 	var unit *UnitItem
-	if unitName == us.data.BaseUnit.Name {
-		unit = us.data.BaseUnit
+	if unitName == u.Base.Name {
+		unit = u.Base
 	} else {
-		found, exists := us.data.AdditionalUnits[unitName]
+		found, exists := u.Additional[unitName]
 		if !exists {
 			return nil, decimal.Zero, fmt.Errorf("unit not found: %s", unitName)
 		}
